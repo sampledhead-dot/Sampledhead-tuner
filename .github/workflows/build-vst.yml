@@ -1,6 +1,7 @@
 # Plugin SampledHead Tuner (VST3 / AU / Standalone) para Windows y Mac.
 # Se ejecuta al cambiar vst/ o a mano (Actions → build-vst → Run workflow). Publica los zips en Releases (vst-vX.Y.Z).
-# Windows y Mac van por separado: cada uno publica en cuanto termina.
+# Windows va siempre. Mac solo a mano (Run workflow → mac): GitHub no asigna máquinas Mac a esta cuenta y esos
+# trabajos acababan cancelados con correos de error. Si algún día hay Mac disponible, marcar «mac» al lanzarlo.
 name: build-vst
 
 on:
@@ -13,6 +14,10 @@ on:
         description: "Publicar en Releases"
         type: boolean
         default: true
+      mac:
+        description: "Compilar también para Mac (necesita máquinas Mac de GitHub)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -41,13 +46,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: windows-latest
-            name: Windows
-          - os: macos-15
-            name: Mac
-    name: ${{ matrix.name }}
+        os: ${{ fromJSON((github.event_name == 'workflow_dispatch' && github.event.inputs.mac == 'true') && '["windows-latest","macos-15"]' || '["windows-latest"]') }}
+    name: ${{ matrix.os == 'windows-latest' && 'Windows' || 'Mac' }}
     runs-on: ${{ matrix.os }}
+    env:
+      PLAT: ${{ matrix.os == 'windows-latest' && 'Windows' || 'Mac' }}
     defaults:
       run:
         shell: bash
@@ -73,7 +76,7 @@ jobs:
           cp -R "$A/Standalone" pkg/
           [ -d "$A/AU" ] && cp -R "$A/AU" pkg/ || true
           cp vst/LEEME.txt pkg/
-          NAME="SampledHead-Tuner-VST-${{ steps.v.outputs.version }}-${{ matrix.name }}.zip"
+          NAME="SampledHead-Tuner-VST-${{ steps.v.outputs.version }}-${{ env.PLAT }}.zip"
           if [ "$RUNNER_OS" = "macOS" ]; then
             # firma ad-hoc (sin certificado de Apple) para que Apple Silicon pueda cargarlo
             find pkg -maxdepth 2 \( -name "*.vst3" -o -name "*.component" -o -name "*.app" \) -exec codesign --force --deep -s - {} \;
@@ -84,7 +87,7 @@ jobs:
           ls -la out
       - uses: actions/upload-artifact@v4
         with:
-          name: tuner-vst-${{ matrix.name }}
+          name: tuner-vst-${{ env.PLAT }}
           path: out/*.zip
           if-no-files-found: error
       - name: Publicar en Releases
