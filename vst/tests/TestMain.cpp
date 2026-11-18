@@ -160,6 +160,36 @@ int main()
             }
         }
     }
+
+    std::cout << "== Aviso de versión nueva ==\n";
+    {
+        using namespace shupdate;
+        CHECK (newer ("1.0.9", "1.0.10") && newer ("1.0.0", "1.1.0") && ! newer ("1.1.0", "1.1.0") && ! newer ("2.0.0", "1.9.9"), "comparar versiones");
+        const auto rel = juce::JSON::parse (R"([{"tag_name":"apps-v5.0.0","html_url":"x"},{"tag_name":"vst-v99.0.0","draft":true,"html_url":"borrador"},
+            {"tag_name":"vst-v9.9.9","html_url":"https://github.com/r/releases/tag/vst-v9.9.9"},{"tag_name":"vst-v1.0.0","html_url":"vieja"}])");
+        const auto l = pickLatest (rel);
+        CHECK (l.version == "9.9.9" && l.url.endsWith ("vst-v9.9.9"), "elegir la última release vst-v (sin borradores ni otras)");
+        CHECK (pickLatest (juce::JSON::parse ("basura")).version.isEmpty(), "respuesta no válida");
+        auto tmp = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("sh-update-test"); tmp.deleteRecursively(); tmp.createDirectory();
+        auto fake = tmp.getChildFile ("releases.json"); fake.replaceWithText (juce::JSON::toString (rel));
+        setenv ("SH_UPDATE_SETTINGS", tmp.getFullPathName().toRawUTF8(), 1); setenv ("SH_UPDATE_FAKE", fake.getFullPathName().toRawUTF8(), 1);
+        auto open = [&] (bool snap) {
+            TunerProcessor p; p.prepareToPlay (SR, 256);
+            std::unique_ptr<juce::AudioProcessorEditor> ed (p.createEditor());
+            auto& up = dynamic_cast<TunerEditor&> (*ed).update; up.waitForCheck (5000);
+            const bool shown = up.hasUpdate();
+            if (snap) { auto img = ed->createComponentSnapshot (ed->getLocalBounds(), true, 1.5f); juce::File out ("/tmp/tuner_editor_update.png"); out.deleteFile(); juce::FileOutputStream fos (out); juce::PNGImageFormat png; png.writeImageToStream (img, fos); }
+            if (shown && ! snap) up.ignoreThisVersion();
+            return std::make_pair (shown, up.latestVersion());
+        };
+        auto a = open (true);  CHECK (a.first && a.second == "9.9.9", "con versión nueva aparece el aviso");
+        std::cout << "  aviso: " << (a.first ? "sí" : "no") << " (v" << a.second << ")\n";
+        auto b = open (false); auto c = open (false); CHECK (! c.first, "tras pulsar ✕ no vuelve a avisar de esa versión");
+        fake.replaceWithText (R"([{"tag_name":"vst-v)" + juce::String (TunerProcessor::kVersion) + R"(","html_url":"x"}])"); tmp.getChildFile ("SampledHeadTuner.settings").deleteFile();
+        auto d = open (false); CHECK (! d.first, "con la misma versión no hay aviso");
+        unsetenv ("SH_UPDATE_FAKE"); unsetenv ("SH_UPDATE_SETTINGS"); tmp.deleteRecursively();
+        juce::ignoreUnused (b);
+    }
     std::cout << (failures ? "FALLOS: " + std::to_string (failures) : std::string ("TODO OK")) << "\n";
     return failures ? 1 : 0;
 }

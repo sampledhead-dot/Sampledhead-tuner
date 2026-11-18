@@ -25,3 +25,8 @@ USAR
 
 PROBLEMAS
 «Guardar informe (.txt)» crea un informe en Documentos/SampledHead Tuner/ para enviarlo.
+
+ACTUALIZACIONES
+Al abrir la ventana del plugin, como mucho una vez al día, se comprueba en GitHub si hay una versión nueva.
+Si la hay, aparece abajo una franja «Nueva versión… · Descargar». Descarga el zip y sustituye el .vst3 por el nuevo
+con el DAW cerrado. Con «✕» no vuelve a avisar de esa versión. Sin internet no aparece nada y el plugin funciona igual.

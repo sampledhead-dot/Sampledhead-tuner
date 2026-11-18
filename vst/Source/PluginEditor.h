@@ -1,5 +1,6 @@
 #pragma once
 #include "PluginProcessor.h"
+#include "UpdateBanner.h"
 
 namespace tcol
 {
@@ -56,6 +57,9 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> tolAtt, gateAtt;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> namesAtt, accAtt;
     NeedleMeter meter;
+public:
+    shupdate::UpdateBanner update { "Sampledhead-tuner", "SampledHead Tuner", TunerProcessor::kVersion, tcol::panel2, tcol::text, tcol::teal };
+private:
     int lastInst = -1, lastTuning = -2, lastCapo = -1, lastNames = -1, lastAcc = -1;
     double holdUntil = 0; shtuner::Target held; double heldHz = 0;
 

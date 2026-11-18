@@ -41,6 +41,7 @@ interfaz muestra nota, cents, Hz y una aguja de ±50 cents.
 - Probar antes de entregar con `TunerTests` (y la carga del `.vst3`).
 
 ## Historial
+- **v1.1.0** (18-11-2026): aviso de versión nueva en la ventana del plugin.
 - **1.0.0** (18-11-2026): primera versión del plugin.
 
 ## Límites conocidos
@@ -50,3 +51,13 @@ interfaz muestra nota, cents, Hz y una aguja de ±50 cents.
 - Probado solo en Linux; Windows/Mac se compilan en GitHub Actions. Las máquinas Mac de GitHub no se estaban asignando
   a esta cuenta el 18-11-2026: el zip de Mac se publicará cuando GitHub las asigne.
 - No probado dentro de un DAW real.
+
+## Aviso de versión nueva (v1.1.0)
+`Source/UpdateBanner.h` (común a los plugins de Sampled Head):
+- Solo con la ventana abierta (nunca al escanear ni en el hilo de audio) y como mucho una vez al día por ordenador. Lo guarda en `<datos de usuario>/SampledHead/<Plugin>.settings`: `%APPDATA%` en Windows, `~/Library/Application Support` en Mac.
+- Pide a la API pública de GitHub la lista de releases del repo y elige la más alta con etiqueta `vst-vX.Y.Z`, sin contar borradores ni pre-releases.
+- Si es más nueva que la instalada, aparece una franja abajo a la derecha con «Descargar» (abre la release en el navegador) y «✕» (no volver a avisar de esa versión).
+- El plugin no se reemplaza solo: el DAW lo tiene cargado y está en una carpeta del sistema.
+- Usa la red del sistema: WinINet en Windows y NSURLSession en Mac. En Linux (solo pruebas) está sin curl y no consulta nada.
+- Pruebas: `SH_UPDATE_FAKE=<json>` y `SH_UPDATE_SETTINGS=<carpeta>`. Las pruebas cubren comparar versiones, elegir la release, que el aviso aparezca, que «✕» lo oculte y que con la misma versión no avise.
+- **Importante al publicar:** la versión del plugin está en `CMakeLists.txt` (`project(... VERSION x.y.z)`, que también da nombre a la release) y en `kVersion` del procesador. Hay que cambiar las dos.

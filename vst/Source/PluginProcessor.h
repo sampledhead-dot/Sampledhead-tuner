@@ -46,7 +46,7 @@ public:
     juce::File saveReport (const juce::String& where);
     void log (const juce::String& msg);
 
-    static constexpr const char* kVersion = "1.0.0";
+    static constexpr const char* kVersion = "1.1.0";
 
 private:
     shtuner::PitchTracker tracker;

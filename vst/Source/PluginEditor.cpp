@@ -190,6 +190,7 @@ TunerEditor::TunerEditor (TunerProcessor& p) : AudioProcessorEditor (&p), proc (
     footer.setText (u8 ("SampledHead Tuner · VST v") + TunerProcessor::kVersion + u8 (" · Sampled Head"), juce::dontSendNotification);
     footer.setColour (juce::Label::textColourId, tcol::muted); footer.setFont (juce::FontOptions (12.0f));
     addAndMakeVisible (footer);
+    addChildComponent (update);
 
     setSize (840, 640);
     timerCallback();
@@ -323,5 +324,6 @@ void TunerEditor::resized()
     muteB.setBounds (588, y, 220, 36); muteInfo.setBounds (588, y + 40, 220, 34); y += 84;
     helpInfo.setBounds (588, y, 220, 64);
     reportB.setBounds (588, 540, 220, 36);
-    footer.setBounds (16, getHeight() - 36, 600, 24);
+    footer.setBounds (16, getHeight() - 36, update.isVisible() ? 330 : 600, 24);
+    update.setBounds (getWidth() - 496, getHeight() - 40, 480, 32);
 }
