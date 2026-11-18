@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Dependencias
-        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxext-dev libfreetype-dev libfontconfig1-dev xvfb
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxext-dev libxi-dev libxrender-dev libxcomposite-dev libfreetype-dev libfontconfig1-dev xvfb
       - name: Compilar
         run: |
           cmake -S vst -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTUNER_BUILD_TESTS=ON
