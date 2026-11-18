@@ -1,0 +1,27 @@
+SampledHead Tuner — plugin VST3 / AU / Standalone
+=================================================
+
+INSTALAR
+- Windows: copia la carpeta  VST3/SampledHead Tuner.vst3  a
+      C:\Program Files\Common Files\VST3\
+  La app independiente (sin DAW) es  Standalone/SampledHead Tuner.exe
+  Si Windows avisa («Windows protegió su PC»): Más información → Ejecutar de todas formas.
+- Mac: copia  VST3/SampledHead Tuner.vst3  a  /Library/Audio/Plug-Ins/VST3/
+       y  AU/SampledHead Tuner.component  a  /Library/Audio/Plug-Ins/Components/
+  La app independiente es  Standalone/SampledHead Tuner.app
+  Si macOS dice que está dañado o no se abre, en Terminal:
+      xattr -cr "/Library/Audio/Plug-Ins/VST3/SampledHead Tuner.vst3"
+      xattr -cr "/Library/Audio/Plug-Ins/Components/SampledHead Tuner.component"
+Abre de nuevo el DAW para que lo detecte.
+
+USAR
+1. Pon el plugin al principio de la cadena de la pista donde entra tu instrumento.
+2. Elige instrumento (Guitarra, Bajo, Ukelele, Banjo o Cromático), afinación y capo.
+3. Toca una cuerda: verás la nota, los cents y la aguja. En verde = afinada (tolerancia ajustable).
+   «Sube (tensa)» / «Baja (afloja)» te dice hacia dónde girar la clavija.
+4. Auto elige la cuerda más cercana; en Manual (o pulsando una cuerda) se fija una.
+5. «Tono de referencia» hace sonar la nota de la cuerda elegida. «Silenciar salida» corta el sonido de la pista.
+6. La 440 Hz se puede cambiar (415–466). Nombres de nota: C D E o Do Re Mi; alteraciones ♯ o ♭.
+
+PROBLEMAS
+«Guardar informe (.txt)» crea un informe en Documentos/SampledHead Tuner/ para enviarlo.

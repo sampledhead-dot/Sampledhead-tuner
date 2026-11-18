@@ -1,0 +1,103 @@
+# Plugin SampledHead Tuner (VST3 / AU / Standalone) para Windows y Mac.
+# Se ejecuta al cambiar vst/ o a mano (Actions → build-vst → Run workflow). Publica los zips en Releases (vst-vX.Y.Z).
+# Windows y Mac van por separado: cada uno publica en cuanto termina.
+name: build-vst
+
+on:
+  push:
+    branches: [main]
+    paths: ["vst/**", ".github/workflows/build-vst.yml"]
+  workflow_dispatch:
+    inputs:
+      publicar:
+        description: "Publicar en Releases"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-vst
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Pruebas (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencias
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxext-dev libfreetype-dev libfontconfig1-dev xvfb
+      - name: Compilar
+        run: |
+          cmake -S vst -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTUNER_BUILD_TESTS=ON
+          cmake --build build --target TunerTests SampledHeadTuner_VST3 --parallel
+      - name: Ejecutar pruebas
+        run: TUNER_VST3="$PWD/build/SampledHeadTuner_artefacts/RelWithDebInfo/VST3/SampledHead Tuner.vst3" xvfb-run -a build/TunerTests_artefacts/RelWithDebInfo/TunerTests
+
+  build:
+    needs: tests
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+          - os: macos-15
+            name: Mac
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Versión
+        id: v
+        run: echo "version=$(grep -oE 'VERSION [0-9]+\.[0-9]+\.[0-9]+' vst/CMakeLists.txt | head -1 | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
+      - name: Configurar
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            cmake -S vst -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+          else
+            cmake -S vst -B build -DCMAKE_BUILD_TYPE=Release
+          fi
+      - name: Compilar
+        run: cmake --build build --config Release --parallel
+      - name: Empaquetar
+        run: |
+          A=build/SampledHeadTuner_artefacts/Release
+          mkdir -p out pkg
+          cp -R "$A/VST3" pkg/
+          cp -R "$A/Standalone" pkg/
+          [ -d "$A/AU" ] && cp -R "$A/AU" pkg/ || true
+          cp vst/LEEME.txt pkg/
+          NAME="SampledHead-Tuner-VST-${{ steps.v.outputs.version }}-${{ matrix.name }}.zip"
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            # firma ad-hoc (sin certificado de Apple) para que Apple Silicon pueda cargarlo
+            find pkg -maxdepth 2 \( -name "*.vst3" -o -name "*.component" -o -name "*.app" \) -exec codesign --force --deep -s - {} \;
+            (cd pkg && ditto -c -k --sequesterRsrc . "../out/$NAME")
+          else
+            (cd pkg && 7z a -tzip "../out/$NAME" . > /dev/null)
+          fi
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tuner-vst-${{ matrix.name }}
+          path: out/*.zip
+          if-no-files-found: error
+      - name: Publicar en Releases
+        if: github.event_name != 'workflow_dispatch' || github.event.inputs.publicar == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: vst-v${{ steps.v.outputs.version }}
+        run: |
+          NOTES="Plugin SampledHead Tuner v${{ steps.v.outputs.version }} (VST3 / AU / Standalone).
+
+          - **Windows**: descomprime y copia \`VST3/SampledHead Tuner.vst3\` a \`C:\\Program Files\\Common Files\\VST3\\\`. La app independiente está en \`Standalone\`.
+          - **Mac**: copia \`VST3/SampledHead Tuner.vst3\` a \`/Library/Audio/Plug-Ins/VST3/\` y \`AU/SampledHead Tuner.component\` a \`/Library/Audio/Plug-Ins/Components/\`. Si macOS lo bloquea: \`xattr -cr\` sobre el archivo.
+
+          Instrucciones completas en LEEME.txt dentro del zip."
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "SampledHead Tuner VST v${{ steps.v.outputs.version }}" --notes "$NOTES" --latest || true
+          for i in 1 2 3; do gh release upload "$TAG" out/*.zip --clobber && break || sleep 10; done
