@@ -1,4 +1,4 @@
-# SampledHead Tuner — HOJA DE PROYECTO (v1.01)
+# SampledHead Tuner — HOJA DE PROYECTO (v1.03)
 
 ## Descripción
 App web (PWA, un solo `index.html`) de afinador + detector de acordes, de la serie SampledHead. Pestañas: Afinador (guitarra, bajo, ukelele, banjo, cromático) y Acordes (directo y análisis de archivo, escalas 60+ con favoritas). ES/EN, guía de usuario integrada.
@@ -11,6 +11,7 @@ App web (PWA, un solo `index.html`) de afinador + detector de acordes, de la ser
 - Repo: `sampledhead-dot/Sampledhead-tuner` (web en raíz; VST3/AU en `vst/`, solo afinador, no afectado). Las apps Windows/Mac/Android de `SH-apps` cargan el contenido del último commit.
 
 ## Historial
+- **Web v1.03** (19-11-2026): conexión con todas las apps de Sampled Head (sh-core): botón «⇄ Apps» con «Recibido» y «Enviar a…»; en Windows/Mac usa la carpeta Documentos/SampledHead. Lo recibido se analiza en Acordes (archivo).
 - **Web v1.02** (19-11-2026) — zona segura: la cabecera (y, donde las hay, las ventanas a pantalla completa y la barra inferior) deja libre la franja de la hora, la batería y la cámara del móvil con `env(safe-area-inset-*)`. Comprobado en Chrome simulando un móvil con 48 px arriba y 24 px abajo: ningún botón tapado. En ordenador no cambia nada. La barra de pestañas pegajosa baja lo mismo.
 - 1.00: afinador, detector de acordes, escalas, ES/EN, guía.
 - 1.01: línea de bajo (piano-roll, lista, notas más usadas, escuchar, exportación); selector de afinación (p. ej. Open D) en los diagramas de acordes; informe de errores .txt automático + botón «Descargar informe (.txt)»; pie con versión; ajustes de maquetación en escritorio.

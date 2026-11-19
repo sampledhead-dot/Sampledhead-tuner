@@ -865,7 +865,7 @@ return {fft:fft,pitch:pitch,yin:yin,refine:refine,spectrum:spectrum,pickPeaks:pi
 })();
 
 /* SampledHead Tuner — app: textos, estado, utilidades, audio */
-const VER='1.02';
+const VER='1.03';
 /* ===== i18n ===== */
 const D={}; function d(k,es,en){D[k]=[es,en];}
 let LANG='es';
@@ -1622,4 +1622,14 @@ function init(){
 window.addEventListener('DOMContentLoaded',init);
 
 
+</script>
+<script src="sh-core.js"></script>
+<script>/* 1.03: conexión con todas las apps (sh-core): recibe una pista (por ejemplo el bajo del Extractor) y la analiza en Acordes */
+(function(){
+  if(!window.SH)return;
+  SH.ui.dock({me:'tuner',pos:'right',bottom:70,kinds:['stem'],provide:null,sendHint:'El afinador analiza; para mandar audio usa las otras apps',
+    accept:async list=>{const it=list.find(x=>x.wav);if(!it)return false;
+      try{S.cMode='file';setTab('chords');renderChords();}catch(e){}
+      await analyzeFile(SH.toFile(it));return true}});
+})();
 </script></body></html>
