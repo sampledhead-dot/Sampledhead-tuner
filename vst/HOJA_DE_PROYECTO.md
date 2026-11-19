@@ -61,3 +61,10 @@ interfaz muestra nota, cents, Hz y una aguja de ±50 cents.
 - Usa la red del sistema: WinINet en Windows y NSURLSession en Mac. En Linux (solo pruebas) está sin curl y no consulta nada.
 - Pruebas: `SH_UPDATE_FAKE=<json>` y `SH_UPDATE_SETTINGS=<carpeta>`. Las pruebas cubren comparar versiones, elegir la release, que el aviso aparezca, que «✕» lo oculte y que con la misma versión no avise.
 - **Importante al publicar:** la versión del plugin está en `CMakeLists.txt` (`project(... VERSION x.y.z)`, que también da nombre a la release) y en `kVersion` del procesador. Hay que cambiar las dos.
+
+## Mac (19-11-2026)
+- Los plugins para Mac se compilan en las máquinas **Intel** de GitHub (`macos-15-intel`). El binario es **universal** (Intel + Apple Silicon), con VST3, AU y Standalone y firma ad-hoc.
+- Con las máquinas Apple Silicon (`macos-15`) las tareas nunca empezaban. GitHub lo explicaba en las anotaciones de cada tarea: «The job was not acquired by Runner of type hosted even after multiple attempts» y «Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times». Era falta de capacidad de GitHub, no un problema de la cuenta.
+- Ahora se compila para Mac siempre. Al lanzarlo a mano se puede desmarcar «mac».
+- Sin certificado de Apple (Developer ID, 99 €/año), la primera vez macOS pide permiso: Ajustes del Sistema → Privacidad y seguridad → «Abrir igualmente», o `xattr -cr` sobre el plugin.
+- No probado en un Mac real ni en Logic, Ableton u otro DAW de Mac.

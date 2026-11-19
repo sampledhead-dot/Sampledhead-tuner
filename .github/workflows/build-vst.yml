@@ -15,9 +15,9 @@ on:
         type: boolean
         default: true
       mac:
-        description: "Compilar también para Mac (necesita máquinas Mac de GitHub)"
+        description: "Compilar también para Mac (universal: Intel y chip Apple)"
         type: boolean
-        default: false
+        default: true
 
 permissions:
   contents: write
@@ -46,7 +46,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON((github.event_name == 'workflow_dispatch' && github.event.inputs.mac == 'true') && '["windows-latest","macos-15-intel"]' || '["windows-latest"]') }}
+        # Mac en máquinas Intel de GitHub (las arm64 se quedaban sin asignar por falta de capacidad); el binario es universal.
+        # Al lanzarlo a mano se puede desmarcar «mac» para compilar solo Windows.
+        os: ${{ fromJSON((github.event_name == 'workflow_dispatch' && github.event.inputs.mac == 'false') && '["windows-latest"]' || '["windows-latest","macos-15-intel"]') }}
     name: ${{ matrix.os == 'windows-latest' && 'Windows' || 'Mac' }}
     runs-on: ${{ matrix.os }}
     env:
