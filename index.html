@@ -17,7 +17,11 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .tab[data-c=tuner]{--c:var(--tea)}.tab[data-c=chords]{--c:var(--vio)}
 .tab.on{color:var(--tx);border-color:var(--c);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,var(--p1)),var(--p1));box-shadow:0 0 0 1px var(--c) inset,0 4px 18px -8px var(--c);font-size:16px}
 .tab i{width:8px;height:8px;border-radius:50%;background:var(--c);opacity:.5}.tab.on i{opacity:1;box-shadow:0 0 8px var(--c)}
-.unit{max-width:640px;margin:0 auto;padding:4px 10px 90px}
+.unit{max-width:640px;margin:0 auto;padding:4px 10px 20px}
+.foot{max-width:640px;margin:0 auto;padding:0 10px 36px;display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--mu);font-size:12.5px}
+.warnbtn{border-color:var(--bad)!important;color:var(--bad)!important}
+.segl{position:relative}
+.segl .bn{color:var(--acc);font-size:12px;margin-left:8px;white-space:nowrap}
 .view{display:none}.view.on{display:block}
 .card{background:var(--p1);border:1px solid var(--ln);border-radius:var(--r);padding:12px;margin:0 0 10px;position:relative}
 .card.rule::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--acc)}
@@ -113,7 +117,7 @@ details.sec::before{content:"";position:absolute;left:0;top:12px;bottom:12px;wid
 .warn{color:var(--warn)}.hide{display:none!important}
 @media(min-width:1000px) and (hover:hover) and (pointer:fine){
   :root{--fs:15.5px}
-  .unit{max-width:1120px}
+  .unit,.foot{max-width:1120px}
   .view.on.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:0 14px;align-items:start}
   .tabs{max-width:420px;margin:0 auto}
   .sheet{border-radius:18px;margin-bottom:5vh}
@@ -132,8 +136,77 @@ details.sec::before{content:"";position:absolute;left:0;top:12px;bottom:12px;wid
 <header class="top"><div class="logo"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect x="2" y="9" width="3" height="8" rx="1.5" fill="#2dd4bf"/><rect x="7" y="5" width="3" height="16" rx="1.5" fill="#2dd4bf"/><rect x="12" y="2" width="3" height="22" rx="1.5" fill="#2dd4bf"/><rect x="17" y="6" width="3" height="14" rx="1.5" fill="#a78bfa"/><rect x="22" y="10" width="3" height="6" rx="1.5" fill="#a78bfa"/></svg><span><b>SampledHead</b><small>Tuner</small></span></div><button class="ib" id="langB" aria-label="Language">🇪🇸 ES</button><button class="ib" id="setB" data-act="settings" aria-label="Settings">⚙</button><button class="ib" id="gdB" data-act="guide" aria-label="Guide">?</button></header>
 <nav class="tabs"><button class="tab on" id="tabT" data-act="tab" data-v="tuner" data-c="tuner"><i></i>Afinador</button><button class="tab" id="tabC" data-act="tab" data-v="chords" data-c="chords"><i></i>Acordes</button></nav>
 <main class="unit"><section class="view on" id="vTuner"></section><section class="view" id="vChords"></section></main>
+<footer class="foot"><span id="ftVer">SampledHead Tuner v1.01</span><button class="btn sm" id="rptB" data-act="rpt">Descargar informe (.txt)</button></footer>
 <div id="toast" role="status"></div>
 <script>
+/* SampledHead Tuner — informe de error (.txt) automático y manual */
+const RPT=(function(){
+  const T0=Date.now(), con=[], steps=[], ctx={where:'',stage:'',progress:'',file:null,partial:null}, seen={};
+  let nAuto=0, lastAuto=0, lastText='';
+  function fmtArg(a){ try{ if(a instanceof Error) return a.stack||a.message; if(typeof a==='object') return JSON.stringify(a); return String(a); }catch(e){ return '[?]'; } }
+  ['log','info','warn','error','debug'].forEach(function(k){
+    const o=console[k]; console[k]=function(){
+      try{ con.push(new Date().toISOString().slice(11,23)+' ['+k+'] '+Array.prototype.map.call(arguments,fmtArg).join(' ').slice(0,500)); if(con.length>300) con.shift(); }catch(e){}
+      return o.apply(console,arguments);
+    };
+  });
+  function step(s){ steps.push(((Date.now()-T0)/1000).toFixed(2)+' s · '+s); if(steps.length>200) steps.shift(); }
+  function ver(){ try{ return VER; }catch(e){ return '?'; } }
+  async function build(kind,err,where){
+    const L=[], add=function(k,v){ L.push(k+': '+v); }, nav=navigator;
+    L.push('SampledHead Tuner — informe de error'); L.push('======================================');
+    add('Versión',ver()); add('Tipo',kind); add('Fecha (ISO)',new Date().toISOString()); add('Fecha (local)',new Date().toString());
+    add('Tiempo desde el inicio',((Date.now()-T0)/1000).toFixed(1)+' s');
+    add('Dónde ocurrió',where||ctx.where||'(sin datos)'); add('Etapa',ctx.stage||'(sin datos)'); add('Progreso',ctx.progress||'(sin datos)');
+    L.push(''); L.push('— Error —');
+    add('Mensaje',err?(err.message||String(err)):'(informe manual, sin error)'); L.push('Stack:'); L.push(err&&err.stack?err.stack:'(sin stack)');
+    add('Workers','esta app no usa workers (todo el análisis corre en el hilo principal con pausas)');
+    L.push(''); L.push('— Entorno —');
+    add('Navegador (UA)',nav.userAgent); add('Plataforma',(nav.userAgentData&&nav.userAgentData.platform)||nav.platform||'?'); add('Idioma',nav.language);
+    add('Núcleos',nav.hardwareConcurrency||'?'); add('RAM (GB, aprox.)',nav.deviceMemory||'?');
+    add('Pantalla',screen.width+'x'+screen.height+' · ventana '+innerWidth+'x'+innerHeight+' · DPR '+devicePixelRatio);
+    add('URL',location.protocol+'//'+location.host+location.pathname); add('Protocolo',location.protocol); add('Contexto seguro',String(window.isSecureContext));
+    add('COOP/COEP (crossOriginIsolated)',String(window.crossOriginIsolated));
+    let gpu='no disponible'; try{ if(nav.gpu){ gpu='navigator.gpu presente'; const ad=await Promise.race([nav.gpu.requestAdapter(),new Promise(function(r){ setTimeout(function(){ r(null); },600); })]); gpu+=ad?' · adaptador obtenido':' · sin adaptador'; } }catch(e){ gpu='error: '+e.message; }
+    add('WebGPU',gpu);
+    try{ if(performance.memory){ const m=performance.memory; add('Memoria JS (MB)','usada '+(m.usedJSHeapSize/1048576).toFixed(0)+' · total '+(m.totalJSHeapSize/1048576).toFixed(0)+' · límite '+(m.jsHeapSizeLimit/1048576).toFixed(0)); } else add('Memoria JS','no disponible en este navegador'); }catch(e){}
+    try{ add('Audio',(typeof Eng!=='undefined'&&Eng.ctx)?('AudioContext '+Eng.ctx.state+' · '+Eng.ctx.sampleRate+' Hz · micrófono '+(Eng.on?'activo':'inactivo')):'sin AudioContext todavía'); }catch(e){}
+    add('Service worker',('serviceWorker' in nav)?(nav.serviceWorker.controller?'activo':'sin controlar'):'no soportado');
+    L.push(''); L.push('— Opciones elegidas —');
+    try{ L.push(JSON.stringify(S,null,1)); }catch(e){ L.push('(no disponibles)'); }
+    L.push(''); L.push('— Archivo (solo nombre, tamaño y tipo; nunca el contenido) —');
+    L.push(ctx.file?('nombre: '+ctx.file.name+' · tamaño: '+ctx.file.size+' bytes · tipo: '+(ctx.file.type||'?')):'(ninguno)');
+    L.push(''); L.push('— Resultado parcial —'); L.push(ctx.partial?JSON.stringify(ctx.partial):'(ninguno)');
+    L.push(''); L.push('— Cronología —'); steps.forEach(function(x){ L.push(x); });
+    L.push(''); L.push('— Consola (últimas '+con.length+' líneas) —'); con.forEach(function(x){ L.push(x); });
+    return L.join('\n');
+  }
+  function download(text){
+    const d=new Date(), p=function(n){ return (n<10?'0':'')+n; };
+    const name='sampledhead-tuner-informe-'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds())+'.txt';
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'})); a.download=name; document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1500);
+  }
+  /* error: lo registra y, con límite (5 por sesión, 1 cada 8 s, sin repetir el mismo en 60 s), descarga el informe */
+  async function err(e,where,stage){
+    try{
+      e=e instanceof Error?e:new Error(String(e)); if(stage) ctx.stage=stage; const key=(where||'')+'|'+e.message, now=Date.now();
+      console.error((where||'')+': '+e.message); step('ERROR '+(where||'')+': '+e.message);
+      if(seen[key]&&now-seen[key]<60000) return; seen[key]=now;
+      lastText=await build('automático',e,where);
+      const b=document.getElementById('rptB'); if(b) b.classList.add('warnbtn');
+      if(nAuto>=5||now-lastAuto<8000) return; nAuto++; lastAuto=now; download(lastText);
+      try{ if(typeof toast==='function'&&typeof t==='function') toast(t('errRep')); }catch(x){}
+    }catch(x){}
+  }
+  async function manual(){ const text=await build('manual',null,ctx.where); download(text); }
+  window.addEventListener('error',function(ev){ err(ev.error||new Error(ev.message||'error'),'window.onerror '+(ev.filename?ev.filename.split('/').pop():'')+':'+(ev.lineno||'')); });
+  window.addEventListener('unhandledrejection',function(ev){ err(ev.reason instanceof Error?ev.reason:new Error(String(ev.reason)),'unhandledrejection'); });
+  step('carga de la página');
+  return {step:step,err:err,manual:manual,ctx:ctx};
+})();
+function safe(fn,name){ return function(){ try{ fn(); }catch(e){ RPT.err(e,name); } }; }
+
 /* SampledHead Tuner — teoría: notas, escalas, afinaciones, acordes, digitaciones */
 const TH=(function(){
 'use strict';
@@ -456,7 +529,7 @@ function rmsOf(x,a,b){ let s=0; a=a||0; b=b||x.length; for(let i=a;i<b;i++) s+=x
 const cents=function(a,b){ return 1200*Math.log(a/b)/LN2; };
 
 /* ---------- AFINADOR ---------- */
-function yin(x,fs,fmin,fmax){
+function yin(x,fs,fmin,fmax,thList){
   const L=x.length, W=L>>1; let N2=1; while(N2<L+W) N2<<=1;
   const re=scratch('yr',N2), im=scratch('yi',N2), pr=scratch('pr',N2), pi=scratch('pi',N2);
   let mean=0; for(let i=0;i<L;i++) mean+=x[i]; mean/=L;
@@ -477,7 +550,7 @@ function yin(x,fs,fmin,fmax){
   const tmin=Math.max(2,Math.floor(fs/fmax)), tmax=Math.min(W-3,Math.ceil(fs/fmin));
   if(tmax<=tmin+2||E1<=0) return null;
   let tau=-1;
-  const ths=[0.10,0.16,0.24,0.32];
+  const ths=thList||[0.10,0.16,0.24,0.32];
   for(let q=0;q<ths.length&&tau<0;q++){
     for(let t=tmin;t<tmax;t++){
       if(dp[t]<ths[q]){ while(t+1<tmax&&dp[t+1]<dp[t]) t++; tau=t; break; }
@@ -706,6 +779,69 @@ Tracker.prototype.process=function(x,fs,opt){
   if(bass.conf>0.3){ let bn=0; for(let p=0;p<12;p++) bn+=this.bs[p]; if(bn>0) for(let p=0;p<12;p++) this.keyB[p]+=this.bs[p]/bn; }
   return out;
 };
+
+/* ---------- LÍNEA DE BAJO (monofónica, para archivos) ---------- */
+function biquadLP(fs,fc,Q){ const w0=2*PI*fc/fs, c=Math.cos(w0), al=Math.sin(w0)/(2*Q), a0=1+al; return {b0:(1-c)/2/a0,b1:(1-c)/a0,b2:(1-c)/2/a0,a1:-2*c/a0,a2:(1-al)/a0}; }
+function biquad(x,q){ const y=new Float32Array(x.length); let x1=0,x2=0,y1=0,y2=0; for(let i=0;i<x.length;i++){ const v=q.b0*x[i]+q.b1*x1+q.b2*x2-q.a1*y1-q.a2*y2; x2=x1; x1=x[i]; y2=y1; y1=v; y[i]=v; } return y; }
+/* Prepara: paso bajo (Butterworth 4.º orden) y diezmado a ~11 kHz. o:{fc,fmin,fmax,win,hop} */
+function bassInit(mono,fs,o){
+  o=o||{}; const fc=o.fc||400;
+  let y=biquad(biquad(biquad(mono,biquadLP(fs,fc,0.5176)),biquadLP(fs,fc,0.7071)),biquadLP(fs,fc,1.9319));
+  const d=Math.max(1,Math.round(fs/11025)); const n=Math.floor(y.length/d), x=new Float32Array(n);
+  for(let i=0;i<n;i++) x[i]=y[i*d];
+  const f3=fs/d, L=Math.round((o.win||0.15)*f3), hop=Math.max(1,Math.round((o.hop||0.04)*f3));
+  const nF=Math.max(0,Math.floor((n-L)/hop)+1);
+  return {x:x,fs:f3,L:L,hop:hop,hopT:hop/f3,nF:nF,fmin:o.fmin||30,fmax:o.fmax||330,fr:new Array(nF)};
+}
+function gz(x,f,fs,w){ const n=x.length, c=2*Math.cos(2*PI*f/fs); let s1=0,s2=0; for(let i=0;i<n;i++){ const s=x[i]*w[i]+c*s1-s2; s2=s1; s1=s; } return Math.sqrt(Math.max(0,s1*s1+s2*s2-c*s1*s2)); }
+function bassStep(B,i){
+  const seg=B.x.subarray(i*B.hop,i*B.hop+B.L); const r=rmsOf(seg), db=20*Math.log10(r+1e-12);
+  let f=0,cl=0; if(db>-75){ const y=yin(seg,B.fs,B.fmin,B.fmax,[0.3,0.42]); if(y){ f=y.f; cl=y.clarity; } }
+  if(db>-75&&!(cl>=0.8)){ // tramo borroso (cambio de nota dentro de la ventana): se reintenta con una ventana corta centrada
+    const L2=Math.round(0.085*B.fs), o2=i*B.hop+Math.round((B.L-L2)/2);
+    if(o2+L2<=B.x.length){ const y2=yin(B.x.subarray(o2,o2+L2),B.fs,Math.max(B.fmin,62),B.fmax,[0.3,0.42]); if(y2&&y2.clarity>cl+0.06){ f=y2.f; cl=y2.clarity; } }
+  }
+  /* octava: si en la frecuencia detectada casi no hay energía y sí en sus múltiplos, la altura era «virtual» (p. ej. la 3.ª del acorde): se sube al múltiplo que suena */
+  if(f>0&&B.fix!==false){
+    if(!B.hw){ B.hw=new Float32Array(B.L); for(let k=0;k<B.L;k++) B.hw[k]=0.5-0.5*Math.cos(2*PI*k/B.L); }
+    const A=[1,2,3,4].map(function(k){ return k*f<=B.fmax*1.4?gz(seg,k*f,B.fs,B.hw):0; }), ref=Math.max(A[1],A[2],A[3]);
+    if(ref>0&&A[0]<(B.octR||0.05)*ref){ for(let k=2;k<=4;k++) if(A[k-1]>=0.5*ref){ f*=k; break; } }
+  }
+  B.fr[i]={db:db,f:f,cl:cl};
+}
+/* Frames → notas {t0,t1,m,c,db}. delta: desafinación del archivo en cents (se compensa). */
+function bassNotes(B,delta,o){
+  o=o||{}; const nF=B.nF, fr=B.fr; if(!nF) return [];
+  let mx=-200; for(let i=0;i<nF;i++) if(fr[i].db>mx) mx=fr[i].db;
+  const gate=Math.max(-70,mx-(o.range||38)), minCl=o.minCl||0.62;
+  const minRun=o.minRun||3, nt=new Int16Array(nF).fill(-1); let cur=-1;
+  for(let i=0;i<nF;i++){
+    const q=fr[i]; const ok=q.f>0;
+    const m=ok?69+12*Math.log2(q.f/440)-(delta||0)/100:NaN;
+    const strong=ok&&q.db>=gate&&q.cl>=minCl;
+    // sostén: una nota ya activa continúa con umbrales más laxos (decaimiento, golpes de bombo encima)
+    const hold=cur>=0&&ok&&q.db>=gate-12&&q.cl>=minCl-0.14&&Math.abs(m-cur)<0.62;
+    if(!strong&&!hold){ if(!(cur>=0&&q.db>=gate-12)) cur=-1; continue; }
+    if(cur>=0&&Math.abs(m-cur)<0.62) nt[i]=cur; else { cur=Math.round(m); nt[i]=cur; }
+  }
+  for(let pass=0;pass<2;pass++){
+    for(let i=1;i<nF-1;i++) if(nt[i]!==nt[i-1]&&nt[i-1]===nt[i+1]) nt[i]=nt[i-1];
+    for(let i=0;i<nF;i++){ if(nt[i]<0) continue; let j=i; while(j+1<nF&&nt[j+1]===nt[i]) j++; if(j-i+1<minRun){ for(let k=i;k<=j;k++) nt[k]=-1; } i=j; }
+  }
+  // huecos de hasta 3 frames entre la misma nota (con algo de energía): se rellenan
+  for(let i=1;i<nF-1;i++){ if(nt[i]>=0||nt[i-1]<0) continue; let j=i; while(j<nF&&nt[j]<0&&j-i<3) j++; if(j<nF&&nt[j]===nt[i-1]){ let en=true; for(let k=i;k<j;k++) if(fr[k].db<gate-12) en=false; if(en) for(let k=i;k<j;k++) nt[k]=nt[i-1]; } }
+  const notes=[], half=B.hopT/2, cen=function(i){ return (i*B.hop+B.L/2)/B.fs; };
+  const onset=o.onset==null?6:o.onset;
+  for(let i=0;i<nF;i++){
+    if(nt[i]<0) continue; let j=i; while(j+1<nF&&nt[j+1]===nt[i]) j++;
+    // separar repeticiones por ataque (subida de nivel)
+    let a=i; for(let k=i+1;k<=j;k++){ if(k-a>=3&&j-k>=2&&fr[k].db-fr[k-1].db>onset){ notes.push(mk(a,k-1)); a=k; } }
+    notes.push(mk(a,j)); i=j;
+  }
+  function mk(a,b){ let c=0,db=0; for(let k=a;k<=b;k++){ c+=fr[k].cl; db+=fr[k].db; } const n=b-a+1; return {t0:Math.max(0,cen(a)-half),t1:cen(b)+half,m:nt[a],c:c/n,db:db/n}; }
+  return notes;
+}
+function bassLine(mono,fs,delta,o){ const B=bassInit(mono,fs,o); for(let i=0;i<B.nF;i++) bassStep(B,i); return bassNotes(B,delta,o); }
 /* ---------- VITERBI ---------- */
 function viterbi(E,S,stay,sw){
   const T=E.length; if(!T) return [];
@@ -721,11 +857,11 @@ function viterbi(E,S,stay,sw){
   const path=new Array(T); path[T-1]=arg; for(let t=T-1;t>0;t--){ arg=bp[t][arg]; path[t-1]=arg; }
   return path;
 }
-return {fft:fft,pitch:pitch,yin:yin,refine:refine,spectrum:spectrum,pickPeaks:pickPeaks,tuningAcc:tuningAcc,tuningFrom:tuningFrom,chromaOf:chromaOf,bassOf:bassOf,initTemplates:initTemplates,scoreChords:scoreChords,rankScales:rankScales,Tracker:Tracker,viterbi:viterbi,rmsOf:rmsOf,cents:cents,median:median};
+return {fft:fft,pitch:pitch,yin:yin,refine:refine,spectrum:spectrum,pickPeaks:pickPeaks,tuningAcc:tuningAcc,tuningFrom:tuningFrom,chromaOf:chromaOf,bassOf:bassOf,initTemplates:initTemplates,scoreChords:scoreChords,rankScales:rankScales,Tracker:Tracker,viterbi:viterbi,bassInit:bassInit,bassStep:bassStep,bassNotes:bassNotes,bassLine:bassLine,rmsOf:rmsOf,cents:cents,median:median};
 })();
 
 /* SampledHead Tuner — app: textos, estado, utilidades, audio */
-const VER='1.00';
+const VER='1.01';
 /* ===== i18n ===== */
 const D={}; function d(k,es,en){D[k]=[es,en];}
 let LANG='es';
@@ -785,6 +921,14 @@ d('segs','Acordes detectados','Detected chords');
 d('keyOf','Tonalidad del archivo','File key');
 d('noScaleChords','Esta escala no tiene 7 notas: mostramos solo las notas.','This scale does not have 7 notes: only the notes are shown.');
 d('sBasic','Básicas','Basic');
+d('bassLine','Línea de bajo','Bass line'); d('bassTop','Notas más usadas','Most used notes');
+d('bassHear','▶ Oír la línea de bajo','▶ Hear the bass line'); d('bassStop','⏹ Parar el bajo','⏹ Stop the bass');
+d('bassNone','No se detectó una línea de bajo clara en este archivo.','No clear bass line was detected in this file.');
+d('bassHint','Detecta una nota cada vez en los graves (hasta ≈ 330 Hz). Puede dudar en los cambios de acorde, con un bajo muy suave o con mucho grave de otros instrumentos; las octavas son lo más delicado. Compruébalo de oído con «Oír la línea de bajo».','It follows one note at a time in the low range (up to ≈ 330 Hz). It may hesitate at chord changes, with a very soft bass or lots of low end from other instruments; octaves are the trickiest part. Check it by ear with “Hear the bass line”.');
+d('bassIn','bajo','bass'); d('dur','duración','duration'); d('notesN','{n} notas','{n} notes');
+d('diagTun','Afinación del diagrama','Diagram tuning');
+d('report','Descargar informe (.txt)','Download report (.txt)');
+d('errRep','Ha ocurrido un error: se ha descargado un informe (.txt).','An error occurred: a report (.txt) was downloaded.');
 
 /* ===== estado ===== */
 const KEY='sampledhead.tuner';
@@ -1045,24 +1189,25 @@ function pickScale(){
 function refreshScale(){ scalePanel($('#scaleT'),'t'); scalePanel($('#scaleC'),'c'); updTunerUI(); }
 function playScale(){ const sc=TH.SCI[S.scale.id]; const base=60+S.scale.root-(S.scale.root>6?12:0); const ms=sc.iv.map(function(i){return base+i;}).concat([base+12]); ms.forEach(function(m,i){ setTimeout(function(){ playMidis([m],0,0.9,S.a4); },i*260); }); }
 /* ===== selección de afinación ===== */
-function pickTun(){
-  const inst=S.inst; const cats=(TH.TCAT[inst]||[]).map(function(c){return [c[0],LANG==='en'?c[2]:c[1]];}); cats.push(['custom',t('custom')]);
+let PKI=null;
+function pickTun(instArg){
+  const inst=instArg||S.inst; PKI=inst; const cats=(TH.TCAT[inst]||[]).map(function(c){return [c[0],LANG==='en'?c[2]:c[1]];}); cats.push(['custom',t('custom')]);
   function items(){ return tuningList(inst).map(function(tn){ return {id:tn.id,label:tunLabel(tn),sub:tunSub(tn),cat:tn.cat,del:tn.cat==='custom'}; }); }
   openPicker({title:t('tuning')+' · '+t('inst_'+inst),cats:cats,items:items(),selected:S.tun[inst],
     favs:function(){ return S.fav.tun.filter(function(x){return x.indexOf(inst+':')===0;}).map(function(x){return x.slice(inst.length+1);}); },
     onFav:function(id){ const k=inst+':'+id; const i=S.fav.tun.indexOf(k); if(i>=0) S.fav.tun.splice(i,1); else S.fav.tun.push(k); save(); },
-    onDel:function(id){ S.custom=S.custom.filter(function(c){return c.id!==id;}); S.fav.tun=S.fav.tun.filter(function(x){return x!==inst+':'+id;}); if(S.tun[inst]===id) S.tun[inst]=tuningList(inst)[0].id; save(); renderTuner(); },
+    onDel:function(id){ S.custom=S.custom.filter(function(c){return c.id!==id;}); S.fav.tun=S.fav.tun.filter(function(x){return x!==inst+':'+id;}); if(S.tun[inst]===id) S.tun[inst]=tuningList(inst)[0].id; save(); renderTuner(); CS.fi=0; renderDiagram(); },
     extra:'<button class="btn sm" style="margin-bottom:10px" data-act="newTun">'+esc(t('newTun'))+'</button>',
-    onPick:function(id){ S.tun[inst]=id; S.sel=0; resetTS(); droneSet(null); save(); renderTuner(); }});
+    onPick:function(id){ S.tun[inst]=id; if(inst===S.inst){ S.sel=0; resetTS(); droneSet(null); } save(); renderTuner(); CS.fi=0; renderDiagram(); }});
 }
 function newTun(){
-  const tn=curTun();
+  const ii=PKI||S.inst; const ll=tuningList(ii); const tn=ll.find(function(x){return x.id===S.tun[ii];})||ll[0];
   openSheet(t('newTun'),'<div class="fld"><label>'+esc(t('tunName'))+'</label><input type="text" id="ntName" maxlength="40"></div><div class="fld"><label>'+esc(t('tunNotes'))+'</label><input type="text" id="ntNotes" value="'+esc(tn?tn.notes.join(' '):'')+'" autocapitalize="characters"></div><div class="row"><button class="btn pri grow" data-act="saveTun">'+esc(t('save'))+'</button><button class="btn" data-act="closeSheet">'+esc(t('cancel'))+'</button></div>');
 }
 function saveTun(){
   const name=$('#ntName').value.trim()||'Custom', notes=$('#ntNotes').value; const id='c'+Date.now().toString(36);
-  const tn=TH.makeTuning(S.inst,id,name,notes); if(!tn){ toast(t('badNotes')); return; }
-  S.custom.push({id:id,inst:S.inst,name:name,notes:notes.trim()}); S.fav.tun.push(S.inst+':'+id); S.tun[S.inst]=id; save(); closeSheet(); resetTS(); renderTuner();
+  const ii=PKI||S.inst; const tn=TH.makeTuning(ii,id,name,notes); if(!tn){ toast(t('badNotes')); return; }
+  S.custom.push({id:id,inst:ii,name:name,notes:notes.trim()}); S.fav.tun.push(ii+':'+id); S.tun[ii]=id; save(); closeSheet(); if(ii===S.inst) resetTS(); renderTuner(); CS.fi=0; renderDiagram();
 }
 
 /* ===== ACORDES: vista, en vivo, diagramas ===== */
@@ -1079,8 +1224,9 @@ function renderChords(){
    +'<div class="card"><div class="row" style="margin-bottom:8px"><span class="h grow" style="margin:0">'+esc(t('history'))+'</span><button class="btn sm" data-act="copyHist">'+esc(t('copy'))+'</button><button class="btn sm" data-act="clearHist">'+esc(t('clear'))+'</button></div><div class="hist" id="chHist"></div></div></div>';
   /* archivo */
   h+='<div id="cFile" class="'+(live?'hide':'')+'"><div class="card rule"><p class="mu sm" style="margin:0 0 10px">'+esc(t('fileHint'))+'</p><button class="btn pri" style="width:100%" data-act="pickFile">📁 '+esc(t('pickFile'))+'</button><input type="file" id="fileIn" accept="audio/*,video/*" class="hide"><div class="prog hide" id="fProg" style="margin-top:10px"><i></i></div><div class="stat" id="fStat"></div></div>'
-   +'<div class="card hide" id="fRes"><div class="row" style="margin-bottom:8px"><button class="btn sm" data-act="fplay" id="fPlayB">▶</button><button class="btn sm" data-act="fstop">⏹</button><span class="grow mu sm" id="fTime" style="text-align:right">0:00</span></div><div class="tl" id="tl"><div style="position:relative"><canvas id="tlCv"></canvas><div id="tlCur" style="position:absolute;top:0;bottom:0;width:2px;background:#fff;left:0;pointer-events:none"></div></div></div>'
-   +'<div class="h" style="margin:12px 0 6px">'+esc(t('segs'))+'</div><div class="segl" id="segl"></div><div class="row w" style="margin-top:10px"><button class="btn sm" data-act="expTxt">'+esc(t('expTxt'))+'</button><button class="btn sm" data-act="expJson">'+esc(t('expJson'))+'</button></div></div></div></div>';
+   +'<div class="card hide" id="fRes"><div class="row" style="margin-bottom:8px"><button class="btn sm" data-act="fplay" id="fPlayB">▶</button><button class="btn sm" data-act="fstop">⏹</button><span class="grow mu sm" id="fTime" style="text-align:right">0:00</span></div><div class="tl" id="tl"><div style="position:relative"><canvas id="tlCv"></canvas><canvas id="tlBv" style="display:none"></canvas><div id="tlCur" style="position:absolute;top:0;bottom:0;width:2px;background:#fff;left:0;pointer-events:none"></div></div></div>'
+   +'<div class="h" style="margin:12px 0 6px">'+esc(t('segs'))+'</div><div class="segl" id="segl"></div><div class="row w" style="margin-top:10px"><button class="btn sm" data-act="expTxt">'+esc(t('expTxt'))+'</button><button class="btn sm" data-act="expJson">'+esc(t('expJson'))+'</button></div></div>'
+   +'<div class="card hide" id="bRes"><div class="row" style="margin-bottom:8px"><span class="h grow" style="margin:0" id="bTitle"></span><button class="btn sm" data-act="hearBass" id="bHearB"></button></div><div class="h" style="margin:0 0 6px" id="bTopT"></div><div class="chips" id="bTop" style="margin-bottom:10px"></div><div class="segl" id="bassl"></div><p class="mu sm" style="margin:8px 0 0" id="bHint"></p></div></div></div>';
   /* derecha */
   h+='<div><div class="card rule diag" id="dgCard"></div><div class="card" id="keyCard"></div>'
    +'<details class="sec" data-fold="cscale"'+(S.fold.cscale?' open':'')+'><summary>'+esc(t('scale'))+'</summary><div class="in" id="scaleC"></div></details></div>';
@@ -1138,6 +1284,7 @@ function diagramModel(){
 function renderDiagram(){
   const e=$('#dgCard'); if(!e) return;
   let h='<div class="seg sm" style="width:100%">'+['guitar','bass','ukulele','banjo','piano'].map(function(k){ return '<button data-act="cinst" data-v="'+k+'" class="'+(S.cInst===k?'on':'')+'">'+esc(t('inst_'+k))+'</button>'; }).join('')+'</div>';
+  if(S.cInst!=='piano'){ const l=tuningList(S.cInst); const tn0=l.find(function(x){return x.id===S.tun[S.cInst];})||l[0]; h+='<button class="pick" style="width:100%" data-act="pickDiagTun"><span class="l"><span>'+esc(t('diagTun'))+'</span><b>'+esc(tunLabel(tn0))+'</b></span><span class="mu sm" style="white-space:nowrap">'+esc(tunSub(tn0))+'</span><span class="c">▾</span></button>'; }
   const c=CS.sel;
   if(!c){ e.innerHTML=h+'<div class="mu sm" style="padding:30px 0;text-align:center">'+esc(t('diagram'))+'</div>'; return; }
   const m=diagramModel(); CS.model=m;
@@ -1175,10 +1322,11 @@ function pianoSVG(ms,rootPc){
 }
 /* ===== ARCHIVO ===== */
 const FA={res:null,cancel:false,busy:false,src:null,start:0,off:0,playing:false,buf:null,pps:60};
-function setProg(p,txt){ const pr=$('#fProg'); if(!pr) return; pr.classList.remove('hide'); pr.firstChild.style.width=(p*100).toFixed(0)+'%'; const st=$('#fStat'); if(st) st.textContent=txt||''; }
+function setProg(p,txt){ RPT.ctx.stage=txt||''; RPT.ctx.progress=(p*100).toFixed(0)+'%'; const pr=$('#fProg'); if(!pr) return; pr.classList.remove('hide'); pr.firstChild.style.width=(p*100).toFixed(0)+'%'; const st=$('#fStat'); if(st) st.textContent=txt||''; }
 const tick=function(){ return new Promise(function(r){ setTimeout(r,0); }); };
 async function analyzeFile(file){
   if(FA.busy) return; FA.busy=true; FA.cancel=false; stopFile(); FA.res=null;
+  RPT.ctx.where='Analizar archivo'; RPT.ctx.file={name:file.name,size:file.size,type:file.type}; RPT.ctx.partial=null; RPT.step('analizar archivo: '+file.name+' ('+file.size+' bytes)');
   try{
     setProg(0.02,t('decoding')); const ab=await file.arrayBuffer(); const ctx=Eng.ensureCtx();
     const buf=await new Promise(function(res,rej){ const p=ctx.decodeAudioData(ab,res,rej); if(p&&p.catch) p.catch(rej); });
@@ -1194,7 +1342,10 @@ async function analyzeFile(file){
       if(i%40===39){ setProg(0.05+0.7*i/nF,t('analyzing')); await tick(); if(FA.cancel) throw new Error('cancel'); }
     }
     const tu=SHD.tuningFrom(acc); const delta=(S.tuneAuto&&tu.R>0.3)?tu.d:0;
-    setProg(0.78,t('analyzing')); await tick();
+    RPT.step('afinación del archivo '+delta.toFixed(1)+' cents');
+    const BB=SHD.bassInit(mono,fs2,{}); for(let i=0;i<BB.nF;i++){ SHD.bassStep(BB,i); if(i%120===119){ setProg(0.76+0.03*i/BB.nF,t('analyzing')); await tick(); if(FA.cancel) throw new Error('cancel'); } }
+    const bassN=SHD.bassNotes(BB,delta,{}); RPT.step('línea de bajo: '+bassN.length+' notas'); RPT.ctx.partial={bajo:bassN.length};
+    setProg(0.8,t('analyzing')); await tick();
     const chroma=[], bass=[]; let maxDb=-200; rmsDb.forEach(function(v){ if(v>maxDb) maxDb=v; });
     for(let i=0;i<nF;i++){ const ch=SHD.chromaOf(pks[i],delta); let sm=0; for(let p=0;p<12;p++) sm+=ch[p]; if(sm>0) for(let p=0;p<12;p++) ch[p]/=sm; chroma.push(ch); bass.push(SHD.bassOf(pks[i],delta)); }
     /* suavizado y emisiones */
@@ -1225,9 +1376,9 @@ async function analyzeFile(file){
     /* tonalidad global */
     const kc=new Float64Array(12), kb=new Float64Array(12); for(let i=0;i<nF;i++){ if(rmsDb[i]<maxDb-42) continue; for(let p=0;p<12;p++){ kc[p]+=chroma[i][p]; kb[p]+=bass[i].conf>0.25?bass[i].pc[p]/(1e-9+bass[i].pc.reduce(function(s,v){return s+v;},0)):0; } }
     const keys=SHD.rankScales(kc,kb,TH.SC,5);
-    FA.res={segs:out,keys:keys,dur:dur,name:file.name,tune:delta}; FA.sel=0;
+    FA.res={segs:out,keys:keys,dur:dur,name:file.name,tune:delta,bass:bassN}; FA.sel=0; FA.bi=-1; RPT.ctx.partial={acordes:out.length,bajo:bassN.length,tonalidad:keys[0]?keys[0].id:''};
     setProg(1,t('done')+(Math.abs(delta)>8?' · '+t('tuneEst')+': '+(delta>0?'+':'')+delta.toFixed(0)+' '+t('cents'):'')); renderFileRes(); updKey(true);
-  }catch(e){ if(e.message!=='cancel'){ const st=$('#fStat'); if(st) st.textContent=t('fileErr')+(e.message||e); } }
+  }catch(e){ if(e.message!=='cancel'){ const st=$('#fStat'); if(st) st.textContent=t('fileErr')+(e.message||e); RPT.err(e,'Analizar archivo'); } }
   FA.busy=false;
 }
 function fmtT(s){ const m=Math.floor(s/60), x=s-m*60; return m+':'+(x<10?'0':'')+x.toFixed(1); }
@@ -1238,8 +1389,30 @@ function renderFileRes(){
   const sc=W/r.dur;
   r.segs.forEach(function(s){ const x=s.t0*sc, w=Math.max(1,(s.t1-s.t0)*sc); if(s.n){ g.fillStyle='#202a35'; g.fillRect(x,8,w-1,H-16); return; } g.fillStyle='hsl('+(s.r*30)+',55%,38%)'; g.fillRect(x,8,w-1,H-16); if(w>26){ g.fillStyle='#fff'; g.fillText(chName(s.r,s.tid,s.bass),x+4,H/2); } });
   g.fillStyle='#8997a6'; g.font='10px system-ui'; for(let sx=0;sx<r.dur;sx+=Math.max(5,Math.ceil(r.dur/20/5)*5)){ g.fillText(Math.floor(sx/60)+':'+('0'+Math.floor(sx%60)).slice(-2),sx*sc+2,H-4); }
-  const l=$('#segl'); l.innerHTML=r.segs.map(function(s,i){ if(s.n) return ''; const rn=CS.keyTopF?'':''; return '<button data-act="seg" data-i="'+i+'"><span class="tm">'+fmtT(s.t0)+'</span><b>'+esc(chName(s.r,s.tid,s.bass))+'</b><span class="rn">'+esc(fileRoman(s))+'</span></button>'; }).join('');
+  const l=$('#segl'); l.innerHTML=r.segs.map(function(s,i){ if(s.n) return ''; return '<button data-act="seg" data-i="'+i+'"><span class="tm">'+fmtT(s.t0)+'</span><b>'+esc(chName(s.r,s.tid,s.bass))+'</b>'+bassTxt(s)+'<span class="rn">'+esc(fileRoman(s))+'</span></button>'; }).join('');
+  drawBass(W);
   updKey(true);
+}
+function bassTxt(s){
+  const b=FA.res&&FA.res.bass; if(!b||!b.length) return ''; const out=[];
+  for(let k=0;k<b.length;k++){ const n=b[k]; if(n.t1<=s.t0) continue; if(n.t0>=s.t1) break; if(Math.min(n.t1,s.t1)-Math.max(n.t0,s.t0)<0.12) continue; const nm=TH.noteName(n.m,nmOpts(cctx()),true); if(out[out.length-1]!==nm) out.push(nm); }
+  if(!out.length) return ''; return '<span class="bn">'+esc(t('bassIn'))+' '+esc(out.slice(0,4).join(' '))+(out.length>4?'…':'')+'</span>';
+}
+function bnName(n){ return TH.noteName(n.m,nmOpts(cctx()),true); }
+function drawBass(W){
+  const r=FA.res, b=r.bass||[], bv=$('#tlBv'), card=$('#bRes'); card.classList.remove('hide');
+  $('#bTitle').textContent=t('bassLine')+(b.length?' · '+t('notesN').replace('{n}',b.length):''); $('#bHint').textContent=t('bassHint'); $('#bHearB').textContent=FA.bassPlaying?t('bassStop'):t('bassHear'); $('#bTopT').textContent=t('bassTop');
+  if(!b.length){ bv.style.display='none'; $('#bTop').innerHTML='<span class="mu sm">'+esc(t('bassNone'))+'</span>'; $('#bassl').innerHTML=''; $('#bHearB').classList.add('hide'); return; }
+  $('#bHearB').classList.remove('hide');
+  let lo=127,hi=0; b.forEach(function(n){ if(n.m<lo) lo=n.m; if(n.m>hi) hi=n.m; }); lo-=1; hi+=1; const rows=hi-lo+1, rh=Math.max(6,Math.min(13,Math.floor(170/rows))), H=rows*rh+4;
+  bv.style.display='block'; bv.width=W; bv.height=H; bv.style.width=W+'px'; bv.style.height=H+'px'; bv.style.marginTop='4px';
+  const g=bv.getContext('2d'); g.clearRect(0,0,W,H); const sc=W/r.dur; g.font='bold 10px system-ui'; g.textBaseline='middle';
+  for(let m=lo;m<=hi;m++){ const y=(hi-m)*rh+2; const isC=m%12===0; g.fillStyle=isC?'rgba(255,255,255,.16)':([1,3,6,8,10].indexOf(m%12)>=0?'rgba(255,255,255,.03)':'rgba(255,255,255,.07)'); g.fillRect(0,y,W,rh-1); if(isC){ g.fillStyle='#8997a6'; g.fillText(TH.noteName(m,nmOpts(cctx()),true),3,y+rh/2); } }
+  b.forEach(function(n){ const x=n.t0*sc, w=Math.max(2,(n.t1-n.t0)*sc), y=(hi-n.m)*rh+2; g.fillStyle='hsl('+((n.m%12)*30)+',62%,50%)'; g.fillRect(x,y,w-1,rh-1); if(w>24&&rh>=9){ g.fillStyle='#fff'; g.fillText(bnName(n),x+3,y+rh/2); } });
+  const dur=new Array(12).fill(0); let tot=0; b.forEach(function(n){ const d=n.t1-n.t0; dur[((n.m%12)+12)%12]+=d; tot+=d; });
+  const top=dur.map(function(v,p){return [p,v];}).filter(function(x){return x[1]>0;}).sort(function(a,c){return c[1]-a[1];}).slice(0,6);
+  $('#bTop').innerHTML=top.map(function(x){ return '<span class="chip">'+esc(TH.pcName(x[0],nmOpts(cctx())))+' <small class="mu">'+Math.round(x[1]/tot*100)+'%</small></span>'; }).join('');
+  $('#bassl').innerHTML=b.map(function(n,i){ return '<button data-act="bnote" data-i="'+i+'"><span class="tm">'+fmtT(n.t0)+'</span><b>'+esc(bnName(n))+'</b><span class="rn">'+(n.t1-n.t0).toFixed(2)+' s</span></button>'; }).join('');
 }
 function fileRoman(s){ const k=FA.res&&FA.res.keys&&FA.res.keys[0]; if(!k||TH.SCI[k.id].iv.length!==7) return ''; return TH.roman(s.r,k.root,s.tid); }
 function filePos(){ if(!FA.playing) return FA.off; return Math.min(FA.res?FA.res.dur:0,FA.off+(Eng.ctx.currentTime-FA.start)); }
@@ -1248,19 +1421,21 @@ function playFile(from){
 }
 function stopSrc(){ if(FA.src){ try{ FA.src.onended=null; FA.src.stop(); }catch(e){} FA.src=null; } }
 function pauseFile(){ if(!FA.playing) return; FA.off=filePos(); FA.playing=false; stopSrc(); const b=$('#fPlayB'); if(b) b.textContent='▶'; }
-function stopFile(){ stopSrc(); FA.playing=false; FA.off=0; const b=$('#fPlayB'); if(b) b.textContent='▶'; }
+function stopFile(){ stopSrc(); stopBass(); FA.playing=false; FA.off=0; const b=$('#fPlayB'); if(b) b.textContent='▶'; }
 function fileLoop(){
   requestAnimationFrame(fileLoop); if(S.tab!=='chords'||S.cMode!=='file'||!FA.res) return;
   const pos=filePos(); const cur=$('#tlCur'); if(!cur) return; const sc=($('#tlCv').width)/FA.res.dur; cur.style.left=(pos*sc)+'px'; const ft=$('#fTime'); if(ft) ft.textContent=fmtT(pos)+' / '+fmtT(FA.res.dur);
   const box=$('#tl'); if(FA.playing){ const x=pos*sc; if(x>box.scrollLeft+box.clientWidth*0.85||x<box.scrollLeft) box.scrollLeft=Math.max(0,x-box.clientWidth*0.2); }
+  const bn=FA.res.bass||[]; let bi=-1; for(let k=0;k<bn.length;k++){ if(pos>=bn[k].t0&&pos<bn[k].t1){ bi=k; break; } if(bn[k].t0>pos) break; }
+  if(bi!==FA.bi){ FA.bi=bi; $$('#bassl button').forEach(function(bt){ bt.classList.toggle('on',+bt.dataset.i===bi); }); const on=$('#bassl button.on'); if(on&&FA.playing){ const L=$('#bassl'); L.scrollTop=on.offsetTop-L.clientHeight/2; } }
   let ci=-1; FA.res.segs.forEach(function(s,i){ if(!s.n&&pos>=s.t0&&pos<s.t1) ci=i; });
   if(ci!==FA.ci){ FA.ci=ci; $$('#segl button').forEach(function(b){ b.classList.toggle('on',+b.dataset.i===ci); }); const on=$('#segl button.on'); if(on&&FA.playing){ const L=$('#segl'); L.scrollTop=on.offsetTop-L.clientHeight/2; } if(ci>=0&&FA.playing){ const s=FA.res.segs[ci]; CS.sel={r:s.r,tid:s.tid,bass:s.bass}; CS.fi=0; renderDiagram(); } }
 }
 function exportFile(kind){
   const r=FA.res; if(!r) return; const base=(r.name||'chords').replace(/\.[^.]+$/,'');
   let data,mime,ext; const L=r.segs.filter(function(s){return !s.n;});
-  if(kind==='txt'){ data=L.map(function(s){ return fmtT(s.t0)+'\t'+chName(s.r,s.tid,s.bass); }).join('\n'); mime='text/plain'; ext='txt'; }
-  else{ data=JSON.stringify({file:r.name,duration:r.dur,keys:r.keys.slice(0,3).map(function(k){return {root:TH.pcName(k.root,nmOpts(null)),scale:k.id,score:+k.sc.toFixed(3)};}),chords:L.map(function(s){ return {start:+s.t0.toFixed(2),end:+s.t1.toFixed(2),chord:chName(s.r,s.tid,s.bass)}; })},null,1); mime='application/json'; ext='json'; }
+  if(kind==='txt'){ data=L.map(function(s){ return fmtT(s.t0)+'\t'+chName(s.r,s.tid,s.bass); }).join('\n')+(r.bass&&r.bass.length?'\n\n# '+t('bassLine')+' ('+t('dur')+')\n'+r.bass.map(function(n){ return fmtT(n.t0)+'\t'+bnName(n)+'\t'+(n.t1-n.t0).toFixed(2)+' s'; }).join('\n'):''); mime='text/plain'; ext='txt'; }
+  else{ data=JSON.stringify({file:r.name,duration:r.dur,keys:r.keys.slice(0,3).map(function(k){return {root:TH.pcName(k.root,nmOpts(null)),scale:k.id,score:+k.sc.toFixed(3)};}),chords:L.map(function(s){ return {start:+s.t0.toFixed(2),end:+s.t1.toFixed(2),chord:chName(s.r,s.tid,s.bass)}; }),bass:(r.bass||[]).map(function(n){ return {start:+n.t0.toFixed(2),end:+n.t1.toFixed(2),note:bnName(n),midi:n.m}; })},null,1); mime='application/json'; ext='json'; }
   dl(new Blob([data],{type:mime}),base+'_chords.'+ext);
 }
 function dl(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1500); }
@@ -1322,11 +1497,17 @@ const GUIDE=[
 '<p>La sección <b>Escala</b> (en Afinador › Cromático y en Acordes) ofrece <b>más de 60 escalas</b> en 10 familias: básicas, modos griegos, pentatónicas y blues, modos de la menor armónica y melódica, simétricas, bebop, exóticas, japonesas y asiáticas, árabes, indias y flamenca (frigio dominante). Se pueden buscar por nombre o alias («hijaz», «gitana», «Ionian»…).</p><ul><li><b>☆ Favoritas:</b> pulsa la estrella junto a la escala (o dentro del selector) y se guarda arriba, en «★ Favoritas».</li><li>Se muestran sus <b>notas</b> con la tónica resaltada, su fórmula en semitonos y, si tiene 7 notas, sus <b>acordes diatónicos</b> (tócalos para ver el diagrama).</li><li><b>Favorecer acordes de esta escala:</b> inclina la detección hacia acordes que pertenecen a la escala. Útil si ya conoces la tonalidad; con la intensidad alta puede forzar errores si tocas fuera de ella.</li><li><b>Tonalidad / escala probable:</b> mientras tocas, la app puntúa todas las escalas en las 12 tónicas y te muestra las 3–4 más probables; <i>Usar</i> la fija como escala activa.</li></ul>',
 '<p>The <b>Scale</b> section (in Tuner › Chromatic and in Chords) offers <b>more than 60 scales</b> in 10 families: basic, Greek modes, pentatonic & blues, harmonic- and melodic-minor modes, symmetrical, bebop, exotic, Japanese & Asian, Arabic, Indian and flamenco (Phrygian dominant). Search by name or alias (“hijaz”, “gypsy”, “Ionian”…).</p><ul><li><b>☆ Favorites:</b> tap the star next to the scale (or inside the picker) and it is stored at the top, under “★ Favorites”.</li><li>Its <b>notes</b> are shown with the root highlighted, its semitone formula and, if it has 7 notes, its <b>diatonic chords</b> (tap one to see the diagram).</li><li><b>Favour chords from this scale:</b> biases detection toward chords inside the scale. Handy when you know the key; at high strength it can force errors if you play outside it.</li><li><b>Likely key / scale:</b> while you play, the app scores every scale on all 12 roots and shows the 3–4 most likely ones; <i>Use</i> sets it as the active scale.</li></ul>'],
 ['Diagramas de acordes','Chord diagrams',
-'<p>Cada acorde detectado (o elegido) se dibuja en <b>guitarra, bajo, ukelele, banjo o piano</b>. Las digitaciones se calculan para la <b>afinación que tengas elegida</b> en el Afinador (incluida una propia), con un máximo de 4 trastes de extensión, cejillas contadas como un dedo y la nota grave adecuada. <i>Otra digitación</i> recorre las mejores. <i>▶ Escuchar</i> toca el acorde con un sonido sintético.</p>',
-'<p>Each detected (or chosen) chord is drawn for <b>guitar, bass, ukulele, banjo or piano</b>. Fingerings are computed for the <b>tuning chosen</b> in the Tuner (including a custom one), within a 4-fret span, barres counted as one finger and the right bass note. <i>Another fingering</i> cycles through the best ones. <i>▶ Listen</i> plays the chord with a synthetic sound.</p>'],
+'<p>Cada acorde detectado (o elegido) se dibuja en <b>guitarra, bajo, ukelele, banjo o piano</b>. Bajo el selector de instrumento hay un botón con la <b>afinación del diagrama</b> (Open D, DADGAD, Drop D, barítono, una propia…): al cambiarla, las digitaciones se recalculan para esa afinación. Se elige la misma lista que en el Afinador (con ★ favoritas y «＋ Crear afinación propia») y es la misma afinación que usa el Afinador para ese instrumento. Las digitaciones llevan un máximo de 4 trastes de extensión, cejillas contadas como un dedo y la nota grave adecuada. <i>Otra digitación</i> recorre las mejores. <i>▶ Escuchar</i> toca el acorde con un sonido sintético.</p>',
+'<p>Each detected (or chosen) chord is drawn for <b>guitar, bass, ukulele, banjo or piano</b>. Under the instrument selector there is a button with the <b>diagram tuning</b> (Open D, DADGAD, Drop D, baritone, a custom one…): when you change it, the fingerings are recomputed for that tuning. It uses the same list as the Tuner (with ★ favorites and “＋ Create custom tuning”) and it is the same tuning the Tuner uses for that instrument. Fingerings stay within a 4-fret span, barres count as one finger and the right bass note is used. <i>Another fingering</i> cycles through the best ones. <i>▶ Listen</i> plays the chord with a synthetic sound.</p>'],
 ['Analizar un archivo','Analyzing a file',
-'<p>En <b>Acordes › Archivo</b> elige una canción o grabación (audio o vídeo que tu navegador pueda decodificar). La app la analiza entera en el dispositivo: dibuja una <b>línea de tiempo de acordes</b>, estima la <b>tonalidad y escala</b> y compensa la afinación del disco. Para suavizar el resultado usa un algoritmo de <b>Viterbi</b> sobre todo el archivo, de modo que los cambios de acorde son más estables que en directo.</p><ul><li>Toca la línea de tiempo o una fila de la lista para saltar; ▶ reproduce y sigue el acorde actual con su diagrama.</li><li><b>Exportar .txt / .json</b> guarda los tiempos y los acordes.</li><li>El nivel de <i>Detalle</i> y el filtro de escala se aplican también al análisis; cámbialos y vuelve a elegir el archivo para recalcular.</li></ul>',
-'<p>In <b>Chords › File</b> pick a song or recording (audio or video your browser can decode). The app analyzes all of it on the device: it draws a <b>chord timeline</b>, estimates the <b>key and scale</b> and compensates for the recording’s tuning. To smooth the result it runs a <b>Viterbi</b> pass over the whole file, so chord changes are steadier than live.</p><ul><li>Tap the timeline or a list row to jump; ▶ plays and follows the current chord with its diagram.</li><li><b>Export .txt / .json</b> saves times and chords.</li><li>The <i>Detail</i> level and the scale filter also apply to the analysis; change them and pick the file again to recompute.</li></ul>'],
+'<p>En <b>Acordes › Archivo</b> elige una canción o grabación (audio o vídeo que tu navegador pueda decodificar). La app la analiza entera en el dispositivo: dibuja una <b>línea de tiempo de acordes</b>, estima la <b>tonalidad y escala</b>, sigue la <b>línea de bajo</b> (ver su sección) y compensa la afinación del disco. Para suavizar el resultado usa un algoritmo de <b>Viterbi</b> sobre todo el archivo, de modo que los cambios de acorde son más estables que en directo.</p><ul><li>Toca la línea de tiempo o una fila de la lista para saltar; ▶ reproduce y sigue el acorde actual con su diagrama.</li><li><b>Exportar .txt / .json</b> guarda los tiempos y los acordes.</li><li>El nivel de <i>Detalle</i> y el filtro de escala se aplican también al análisis; cámbialos y vuelve a elegir el archivo para recalcular.</li></ul>',
+'<p>In <b>Chords › File</b> pick a song or recording (audio or video your browser can decode). The app analyzes all of it on the device: it draws a <b>chord timeline</b>, estimates the <b>key and scale</b>, follows the <b>bass line</b> (see its section) and compensates for the recording’s tuning. To smooth the result it runs a <b>Viterbi</b> pass over the whole file, so chord changes are steadier than live.</p><ul><li>Tap the timeline or a list row to jump; ▶ plays and follows the current chord with its diagram.</li><li><b>Export .txt / .json</b> saves times and chords.</li><li>The <i>Detail</i> level and the scale filter also apply to the analysis; change them and pick the file again to recompute.</li></ul>'],
+['Línea de bajo','Bass line',
+'<p>Al analizar un archivo, además de los acordes la app sigue la <b>línea de bajo</b>: un filtro deja solo los graves (hasta ≈ 330 Hz), se mide el tono cada 40 ms con el mismo método YIN del afinador, se corrige la desafinación del archivo y los resultados se agrupan en <b>notas</b> con su octava (por ejemplo <i>A1, C2, E2</i>).</p><ul><li>Bajo la línea de tiempo de acordes aparece un <b>piano-roll</b> alineado con ella y con el cursor de reproducción.</li><li>La lista da el tiempo, la nota y la duración; tócala para saltar a ese punto. <i>Notas más usadas</i> resume qué notas dominan (en % del tiempo).</li><li>En la lista de acordes, cada acorde muestra también sus notas de bajo.</li><li><i>▶ Oír la línea de bajo</i> la toca con un sonido sintético, desde el punto de reproducción actual: pon también el audio original y compara de oído.</li><li>Va incluida en la exportación .txt y .json.</li></ul><div class=\'note\'>Detecta <b>una nota cada vez</b>. Puede dudar en los cambios de acorde, con un bajo muy suave o con mucho grave de otros instrumentos, y las octavas son lo más delicado. En pruebas con bajos sintéticos (líneas caminantes bajo acordes, con bombo y ruido) acierta entre el 80 y el 90 % de las notas según el caso; con música real no está medido, así que compruébalo de oído.</div>',
+'<p>When analyzing a file, besides the chords the app follows the <b>bass line</b>: a filter keeps only the low end (up to ≈ 330 Hz), pitch is measured every 40 ms with the same YIN method as the tuner, the file’s detuning is corrected and the results are grouped into <b>notes</b> with their octave (e.g. <i>A1, C2, E2</i>).</p><ul><li>Under the chord timeline you get a <b>piano roll</b> aligned with it and with the playback cursor.</li><li>The list gives time, note and duration; tap one to jump there. <i>Most used notes</i> summarizes which notes dominate (as % of time).</li><li>In the chord list, each chord also shows its bass notes.</li><li><i>▶ Hear the bass line</i> plays it with a synthetic sound from the current playback position: play the original audio too and compare by ear.</li><li>It is included in the .txt and .json export.</li></ul><div class=\'note\'>It follows <b>one note at a time</b>. It may hesitate at chord changes, with a very soft bass or lots of low end from other instruments, and octaves are the trickiest part. In tests with synthetic basses (walking lines under chords, with kick and noise) it gets 80–90 % of the notes right depending on the case; it has not been measured on real music, so check it by ear.</div>'],
+['Informe de errores','Error report',
+'<p>Si algo falla, la app <b>descarga sola un informe .txt</b> y el pie tiene siempre el botón <b>«Descargar informe (.txt)»</b> (se pone en rojo tras un error). Contiene versión, fecha, dónde y en qué etapa ocurrió, mensaje y pila de llamadas, navegador, sistema, núcleos, RAM, pantalla, URL y contexto seguro, memoria, ajustes elegidos, nombre/tamaño/tipo del archivo analizado (<b>nunca su contenido</b>), resultado parcial, cronología y las últimas 300 líneas de consola. Como mucho 5 descargas automáticas por sesión, una cada 8 s. Envíalo si quieres que se mire el fallo.</p>',
+'<p>If something fails, the app <b>downloads a .txt report by itself</b>, and the footer always has the <b>“Download report (.txt)”</b> button (it turns red after an error). It contains version, date, where and at which stage it happened, message and stack, browser, system, cores, RAM, screen, URL and secure context, memory, chosen settings, name/size/type of the analyzed file (<b>never its content</b>), partial result, timeline and the last 300 console lines. At most 5 automatic downloads per session, one every 8 s. Send it if you want the failure looked at.</p>'],
 ['Ajustes y copia de seguridad','Settings and backup',
 '<p>⚙ reúne: idioma (ES/EN), nombres de notas (letras o Do Re Mi), alteraciones (automático, ♯ o ♭), La4, tolerancia, sensibilidad (umbral de entrada: súbela si el ruido de fondo mueve la aguja, bájala si no capta cuerdas débiles), indicador (aguja o estroboscopio), entrada de audio, pantalla siempre encendida, compensación de afinación para grabaciones y <b>copia de seguridad</b> (exporta/importa favoritas, afinaciones propias y ajustes en un .json).</p>',
 '<p>⚙ gathers: language (ES/EN), note names (letters or Do Re Mi), accidentals (automatic, ♯ or ♭), A4, tolerance, sensitivity (input threshold: raise it if background noise moves the needle, lower it if weak strings are missed), indicator (needle or strobe), audio input, keep screen on, tuning compensation for recordings and <b>backup</b> (export/import favorites, custom tunings and settings as a .json).</p>'],
@@ -1345,15 +1526,29 @@ function openGuide(){
 function applyLang(){
   document.documentElement.lang=LANG;
   $('#tabT').lastChild.textContent=t('tuner'); $('#tabC').lastChild.textContent=t('chords');
+  $('#rptB').textContent=t('report'); $('#ftVer').textContent='SampledHead Tuner v'+VER;
   $('#langB').textContent=(LANG==='es'?'🇪🇸 ES':'🇬🇧 EN'); $('#setB').setAttribute('aria-label',t('settings')); $('#gdB').setAttribute('aria-label',t('guide'));
   renderTuner(); renderChords(); refreshScale();
 }
 function setTab(k){
+  RPT.step('pestaña '+k);
   if(S.tab===k&&$('#vTuner').classList.contains('on')===(k==='tuner')) return;
   S.tab=k; save(); if(k!=='tuner') droneSet(null); const db=$('#droneBtn'); if(db) db.classList.remove('pri');
   document.body.dataset.tab=k; $('#tabT').classList.toggle('on',k==='tuner'); $('#tabC').classList.toggle('on',k==='chords');
   $('#vTuner').classList.toggle('on',k==='tuner'); $('#vChords').classList.toggle('on',k==='chords');
   if(k==='chords'&&S.cMode==='file'&&FA.res) renderFileRes();
+}
+let _bs=null, _bsT=0;
+function stopBass(){ clearTimeout(_bsT); if(_bs){ _bs.forEach(function(o){ try{ o.stop(); }catch(e){} }); _bs=null; } FA.bassPlaying=false; const b=$('#bHearB'); if(b) b.textContent=t('bassHear'); }
+function hearBass(){
+  if(FA.bassPlaying){ stopBass(); return; }
+  const r=FA.res; if(!r||!r.bass||!r.bass.length) return; const ctx=Eng.ensureCtx(), now=ctx.currentTime+0.06, pos=filePos(), cor=(r.tune||0)/100; _bs=[]; let end=0;
+  r.bass.forEach(function(n){
+    if(n.t1<=pos) return; const t0=now+Math.max(0,n.t0-pos), t1=now+(n.t1-pos), f=TH.mf(n.m+cor,S.a4); end=Math.max(end,t1);
+    const g=ctx.createGain(); g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(0.32,t0+0.012); g.gain.setValueAtTime(0.32,Math.max(t0+0.013,t1-0.04)); g.gain.linearRampToValueAtTime(0,t1+0.03); g.connect(ctx.destination);
+    [[1,'triangle',1],[2,'sine',0.22]].forEach(function(p){ const o=ctx.createOscillator(); o.type=p[1]; o.frequency.value=f*p[0]; const gg=ctx.createGain(); gg.gain.value=p[2]; o.connect(gg); gg.connect(g); o.start(t0); o.stop(t1+0.05); _bs.push(o); });
+  });
+  FA.bassPlaying=true; $('#bHearB').textContent=t('bassStop'); _bsT=setTimeout(stopBass,Math.max(100,(end-ctx.currentTime)*1000+200));
 }
 function targetNow(){ const tg=targets(); if(!tg.length) return null; return tg[(S.auto&&TS.valid&&TS.tgt>=0)?Math.min(TS.tgt,tg.length-1):Math.min(S.sel,tg.length-1)]; }
 const ACT={
@@ -1366,7 +1561,7 @@ const ACT={
   str:function(a){ const i=+a.dataset.i; S.sel=i; S.auto=false; save(); const tg=targets(); const s=tg[i]; if(!s) return; if(_drone){ droneSet(s.f); } else playTone(s.f,2); renderTuner(); },
   auto:function(a){ S.auto=a.dataset.v==='1'; save(); renderTuner(); },
   drone:function(a){ if(_drone){ droneSet(null); a.classList.remove('pri'); } else { const s=targetNow(); if(!s) return; droneSet(s.f); a.classList.add('pri'); } },
-  pickTun:pickTun, newTun:newTun, saveTun:saveTun,
+  pickTun:function(){ pickTun(); }, pickDiagTun:function(){ pickTun(S.cInst); }, newTun:newTun, saveTun:saveTun,
   mic:async function(){ if(Eng.on){ Eng.stop(); resetTS(); setLevel(-100); renderMic(); updTunerUI(); } else { const ok=await Eng.start(); renderMic(); } },
   tScale:function(){ S.tScale=!S.tScale; S.fold.tscale=true; save(); renderTuner(); },
   sroot:function(a){ S.scale.root=+a.dataset.v; save(); refreshScale(); },
@@ -1375,7 +1570,7 @@ const ACT={
   scOn:function(){ S.scaleOn=!S.scaleOn; S.fold.cscale=true; save(); refreshScale(); renderHist(); },
   scChord:function(a){ CS.sel={r:+a.dataset.r,tid:a.dataset.t,bass:null}; CS.fi=0; renderDiagram(); },
   useKey:function(a){ S.scale.root=+a.dataset.r; S.scale.id=a.dataset.id; save(); refreshScale(); toast(TH.pcName(S.scale.root,nmOpts(null))+' '+scName(TH.SCI[S.scale.id])); },
-  cmode:function(a){ S.cMode=a.dataset.v; save(); if(S.cMode==='live') pauseFile(); renderChords(); },
+  cmode:function(a){ S.cMode=a.dataset.v; save(); if(S.cMode==='live'){ pauseFile(); stopBass(); } renderChords(); },
   clevel:function(a){ S.cLevel=+a.dataset.v; save(); CS.tr.reset(); CS.lastKey=''; renderChords(); },
   cinst:function(a){ S.cInst=a.dataset.v; CS.fi=0; save(); renderDiagram(); },
   otherFing:function(){ CS.fi++; renderDiagram(); },
@@ -1384,7 +1579,7 @@ const ACT={
   clearHist:function(){ CS.hist=[]; CS.lastKey=''; CS.tr.reset(); renderHist(); },
   pickFile:function(){ $('#fileIn').click(); },
   fplay:function(){ if(FA.playing) pauseFile(); else playFile(); },
-  fstop:stopFile,
+  fstop:function(){ stopFile(); stopBass(); }, bnote:function(a){ const n=FA.res&&FA.res.bass[+a.dataset.i]; if(n) playFile(n.t0); }, hearBass:hearBass, rpt:function(){ RPT.manual(); },
   seg:function(a){ const s=FA.res.segs[+a.dataset.i]; CS.sel={r:s.r,tid:s.tid,bass:s.bass}; CS.fi=0; renderDiagram(); playFile(s.t0); },
   expTxt:function(){ exportFile('txt'); }, expJson:function(){ exportFile('json'); },
   set:function(a){ const k=a.dataset.k; let v=a.dataset.v; if(k==='tol') v=+v; applySet(k,v); },
@@ -1394,7 +1589,7 @@ const ACT={
   resetAll:function(){ if(confirm(t('resetQ'))){ localStorage.removeItem(KEY); S=JSON.parse(JSON.stringify(DEF)); LANG=S.lang||(/^es/i.test(navigator.language)?'es':'en'); closeSheet(); setTab('tuner'); applyLang(); } }
 };
 function init(){
-  loadS(); LANG=S.lang||(/^es/i.test(navigator.language||'')?'es':'en');
+  RPT.step('init v'+VER); loadS(); LANG=S.lang||(/^es/i.test(navigator.language||'')?'es':'en');
   SHD.initTemplates(TH.CT);
   document.addEventListener('click',function(e){ const a=e.target.closest('[data-act]'); if(!a) return; const f=ACT[a.dataset.act]; if(f){ e.preventDefault(); f(a,e); } });
   document.addEventListener('input',function(e){ const el=e.target; if(el.dataset.in==='scStr'){ S.scStr=+el.value; save(); const lb=el.parentNode.querySelector('label'); if(lb) lb.textContent=t('scaleStr')+' · '+Math.round(S.scStr*100)+'%'; return; }
@@ -1402,7 +1597,7 @@ function init(){
   document.addEventListener('change',function(e){ const el=e.target; if(el.id==='fileIn'&&el.files[0]){ analyzeFile(el.files[0]); el.value=''; } else if(el.id==='bkIn'&&el.files[0]){ backupImport(el.files[0]); el.value=''; } else if(el.dataset.set==='devId'){ applySet('devId',el.value); } else if(el.dataset.set==='a4'){ renderTuner(); } });
   document.addEventListener('click',function(e){ const s=e.target.closest('details.sec'); });
   document.addEventListener('toggle',function(e){ const d=e.target; if(d.dataset&&d.dataset.fold){ S.fold[d.dataset.fold]=d.open; save(); } },true);
-  $('#tl') ; document.addEventListener('click',function(e){ const cv=e.target.closest('#tlCv'); if(cv&&FA.res){ const r=cv.getBoundingClientRect(); const tt=(e.clientX-r.left)/r.width*FA.res.dur; playFile(tt); } });
+  $('#tl') ; document.addEventListener('click',function(e){ const cv=e.target.closest('#tlCv,#tlBv'); if(cv&&FA.res){ const r=cv.getBoundingClientRect(); const tt=(e.clientX-r.left)/r.width*FA.res.dur; playFile(tt); } });
   document.addEventListener('keydown',function(e){
     const tg=e.target.tagName; if(tg==='INPUT'||tg==='SELECT'||tg==='TEXTAREA') return;
     if(e.key==='Escape') closeSheet();
@@ -1417,7 +1612,7 @@ function init(){
   $('#langB').addEventListener('click',ACT.lang);
   document.body.dataset.tab=S.tab; $('#vTuner').classList.toggle('on',S.tab==='tuner'); $('#vChords').classList.toggle('on',S.tab==='chords'); $('#tabT').classList.toggle('on',S.tab==='tuner'); $('#tabC').classList.toggle('on',S.tab==='chords');
   applyLang();
-  setInterval(tunerFrame,55); setInterval(chordFrame,110); gaugeLoop(); fileLoop();
+  setInterval(safe(tunerFrame,'afinador (frame)'),55); setInterval(safe(chordFrame,'acordes (frame)'),110); gaugeLoop(); fileLoop();
   if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(function(){});
 }
 window.addEventListener('DOMContentLoaded',init);
