@@ -131,12 +131,16 @@ details.sec::before{content:"";position:absolute;left:0;top:12px;bottom:12px;wid
   .view.on.grid{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;align-items:start}
   .bigNote{font-size:48px;min-height:48px}.gauge canvas{height:96px}.chName{font-size:42px;min-height:46px}
 }
+
+/* zona segura: que nada quede bajo la hora, la batería o la cámara del móvil (y abajo, bajo la barra de gestos) */
+.top{padding-top:calc(8px + env(safe-area-inset-top,0px))}
+.tabs{top:calc(53px + env(safe-area-inset-top,0px))}
 </style></head>
 <body data-tab="tuner">
 <header class="top"><div class="logo"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect x="2" y="9" width="3" height="8" rx="1.5" fill="#2dd4bf"/><rect x="7" y="5" width="3" height="16" rx="1.5" fill="#2dd4bf"/><rect x="12" y="2" width="3" height="22" rx="1.5" fill="#2dd4bf"/><rect x="17" y="6" width="3" height="14" rx="1.5" fill="#a78bfa"/><rect x="22" y="10" width="3" height="6" rx="1.5" fill="#a78bfa"/></svg><span><b>SampledHead</b><small>Tuner</small></span></div><button class="ib" id="langB" aria-label="Language">🇪🇸 ES</button><button class="ib" id="setB" data-act="settings" aria-label="Settings">⚙</button><button class="ib" id="gdB" data-act="guide" aria-label="Guide">?</button></header>
 <nav class="tabs"><button class="tab on" id="tabT" data-act="tab" data-v="tuner" data-c="tuner"><i></i>Afinador</button><button class="tab" id="tabC" data-act="tab" data-v="chords" data-c="chords"><i></i>Acordes</button></nav>
 <main class="unit"><section class="view on" id="vTuner"></section><section class="view" id="vChords"></section></main>
-<footer class="foot"><span id="ftVer">SampledHead Tuner v1.01</span><button class="btn sm" id="rptB" data-act="rpt">Descargar informe (.txt)</button></footer>
+<footer class="foot"><span id="ftVer">SampledHead Tuner v1.02</span><button class="btn sm" id="rptB" data-act="rpt">Descargar informe (.txt)</button></footer>
 <div id="toast" role="status"></div>
 <script>
 /* SampledHead Tuner — informe de error (.txt) automático y manual */
@@ -861,7 +865,7 @@ return {fft:fft,pitch:pitch,yin:yin,refine:refine,spectrum:spectrum,pickPeaks:pi
 })();
 
 /* SampledHead Tuner — app: textos, estado, utilidades, audio */
-const VER='1.01';
+const VER='1.02';
 /* ===== i18n ===== */
 const D={}; function d(k,es,en){D[k]=[es,en];}
 let LANG='es';
