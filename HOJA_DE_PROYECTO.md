@@ -11,6 +11,7 @@ App web (PWA, un solo `index.html`) de afinador + detector de acordes, de la ser
 - Repo: `sampledhead-dot/Sampledhead-tuner` (web en raíz; VST3/AU en `vst/`, solo afinador, no afectado). Las apps Windows/Mac/Android de `SH-apps` cargan el contenido del último commit.
 
 ## Historial
+- **1.04** (24-11-2026): botón ☰ en la cabecera con el **menú común «☰ Menú»** de todas las apps (sh-core 1.5.0, `SH.ui.menu`): mismas secciones desplegables y en el mismo orden — Proyecto · Importar · Exportar · Otras apps · Copia de tus datos · Ajustes · Ayuda (guía e informe .txt) —; recuerda la sección abierta; los botones de siempre siguen haciendo lo mismo (el menú los pulsa); «⇄ Apps» va dentro (Otras apps, con el número de recibidos en el botón ☰).
 - **Web v1.03** (19-11-2026): conexión con todas las apps de Sampled Head (sh-core): botón «⇄ Apps» con «Recibido» y «Enviar a…»; en Windows/Mac usa la carpeta Documentos/SampledHead. Lo recibido se analiza en Acordes (archivo).
 - **Web v1.02** (19-11-2026) — zona segura: la cabecera (y, donde las hay, las ventanas a pantalla completa y la barra inferior) deja libre la franja de la hora, la batería y la cámara del móvil con `env(safe-area-inset-*)`. Comprobado en Chrome simulando un móvil con 48 px arriba y 24 px abajo: ningún botón tapado. En ordenador no cambia nada. La barra de pestañas pegajosa baja lo mismo.
 - 1.00: afinador, detector de acordes, escalas, ES/EN, guía.

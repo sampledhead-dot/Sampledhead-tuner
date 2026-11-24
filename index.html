@@ -137,7 +137,7 @@ details.sec::before{content:"";position:absolute;left:0;top:12px;bottom:12px;wid
 .tabs{top:calc(53px + env(safe-area-inset-top,0px))}
 </style></head>
 <body data-tab="tuner">
-<header class="top"><div class="logo"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect x="2" y="9" width="3" height="8" rx="1.5" fill="#2dd4bf"/><rect x="7" y="5" width="3" height="16" rx="1.5" fill="#2dd4bf"/><rect x="12" y="2" width="3" height="22" rx="1.5" fill="#2dd4bf"/><rect x="17" y="6" width="3" height="14" rx="1.5" fill="#a78bfa"/><rect x="22" y="10" width="3" height="6" rx="1.5" fill="#a78bfa"/></svg><span><b>SampledHead</b><small>Tuner</small></span></div><button class="ib" id="langB" aria-label="Language">🇪🇸 ES</button><button class="ib" id="setB" data-act="settings" aria-label="Settings">⚙</button><button class="ib" id="gdB" data-act="guide" aria-label="Guide">?</button></header>
+<header class="top"><div class="logo"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect x="2" y="9" width="3" height="8" rx="1.5" fill="#2dd4bf"/><rect x="7" y="5" width="3" height="16" rx="1.5" fill="#2dd4bf"/><rect x="12" y="2" width="3" height="22" rx="1.5" fill="#2dd4bf"/><rect x="17" y="6" width="3" height="14" rx="1.5" fill="#a78bfa"/><rect x="22" y="10" width="3" height="6" rx="1.5" fill="#a78bfa"/></svg><span><b>SampledHead</b><small>Tuner</small></span></div><button class="ib" id="langB" aria-label="Language">🇪🇸 ES</button><button class="ib" id="setB" data-act="settings" aria-label="Settings">⚙</button><button class="ib" id="gdB" data-act="guide" aria-label="Guide">?</button><button class="ib" id="menuB" aria-label="Menú">&#9776;</button></header>
 <nav class="tabs"><button class="tab on" id="tabT" data-act="tab" data-v="tuner" data-c="tuner"><i></i>Afinador</button><button class="tab" id="tabC" data-act="tab" data-v="chords" data-c="chords"><i></i>Acordes</button></nav>
 <main class="unit"><section class="view on" id="vTuner"></section><section class="view" id="vChords"></section></main>
 <footer class="foot"><span id="ftVer">SampledHead Tuner v1.02</span><button class="btn sm" id="rptB" data-act="rpt">Descargar informe (.txt)</button></footer>
@@ -865,7 +865,7 @@ return {fft:fft,pitch:pitch,yin:yin,refine:refine,spectrum:spectrum,pickPeaks:pi
 })();
 
 /* SampledHead Tuner — app: textos, estado, utilidades, audio */
-const VER='1.03';
+const VER='1.04';
 /* ===== i18n ===== */
 const D={}; function d(k,es,en){D[k]=[es,en];}
 let LANG='es';
@@ -1632,4 +1632,17 @@ window.addEventListener('DOMContentLoaded',init);
       try{S.cMode='file';setTab('chords');renderChords();}catch(e){}
       await analyzeFile(SH.toFile(it));return true}});
 })();
-</script></body></html>
+</script><script>
+/* 1.04: menú común «☰ Menú» de todas las apps (sh-core 1.5.0). «⇄ Apps» va dentro (Otras apps). */
+(function(){
+  if(!window.SH||!SH.ui||!SH.ui.menu)return;
+  const T=(es,en)=>()=>LANG==='en'?en:es;
+  SH.ui.menu({
+    me:'tuner',version:VER,button:'#menuB',keepLabel:true,lang:()=>LANG==='en'?'en':'es',
+    ajustes:[{icon:'⚙',click:'#setB',label:T('Ajustes del afinador…','Tuner settings…')},{icon:'🌐',click:'#langB',label:T('Idioma: español / English','Language: Spanish / English')}],
+    guide:()=>document.getElementById('gdB').click(),
+    report:()=>document.getElementById('rptB').click()
+  });
+})();
+</script>
+</body></html>
